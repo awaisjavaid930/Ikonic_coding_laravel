@@ -8,45 +8,79 @@ use App\Http\Resources\UserResource;
 use App\Models\Request as ConnectionRequst;
 use Auth;
 use App\Models\User;
+use DB;
 
 class RequestController extends Controller
 {
+    // suggested
     public function suggestedRequest()
     {
         $senderId = ConnectionRequst::pluck('sender_id')->toArray();
         $receiverId = ConnectionRequst::pluck('receiver_id')->toArray();
         $userIds = array_unique(array_merge($senderId, $receiverId));
-        $users = User::whereNotIn('id',$userIds)->get();
-        return response()->json(['status' => 200 , 'data' => UserResource::collection($users) ]);                
-    
+        $users = User::whereNotIn('id',$userIds)-->get();
+        return response()->json(['status' => 200 , 'data' => UserResource::collection($users)]);
     }
     
-    public function pendingRequest()
+    // get pending send request
+    public function sendRequest()
     {
         $pendingRequests = ConnectionRequst::whereStatus('pending')
-                            ->whereReceiverId(Auth::id())->get();
+                            ->whereSenderId(Auth::id())->with('receiver')->get();
         return response()->json(['status' => 200 , 'data' => RequestResource::collection($pendingRequests) ]);
     }
-    
-    public function approvedRequest(ConnectionRequst $request)
+
+    // get pending received request
+    public function receivedRequest()
     {
-        $request->update(['status' => 'approved']);
+        $pendingRequests = ConnectionRequst::whereStatus('pending')
+                            ->whereReceiverId(Auth::id())->with('sender')->get();
+        return response()->json(['status' => 200 , 'data' => $pendingRequests]);
+    }
+    
+    // post send request
+    public function createRequest(Request $request)
+    {
+        $request['sender_id'] = Auth::id();
+        $request['receiver_id'] = $request['receiver_id'];
+        $request['status'] = 'pending';
+        ConnectionRequst::create($request->all());    
+        return response()->json(['status' => 201 , 'message' => 'request saved!']);    
+    }
+
+    // approved request
+    public function approvedRequest(Request $request)
+    {
+        ConnectionRequst::findOrFail($request['request_id'])->update(['status' => 'approved']);
         return response()->json(['status' => 201 , 'message' => 'request approved!' ]);
     }
     
-    public function withdrawRequest(ConnectionRequst $request)
+    // withdraw or delete request 
+    public function withdrawRequest(Request $request)
     {
-        $request->delete();
-        return response()->json(['status' => 201 , 'message' => 'request withdraw!' ]);
+        ConnectionRequst::findOrFail($request['request_id'])->delete();
+        return response()->json(['status' => 201 , 'message' => 'request withdraw!']);
     }
     
     public function getApprovedRequest()
     {
         $approvedRequests = ConnectionRequst::whereStatus('approved')
-                            ->whereReceiverId(Auth::id())->get();
+                            // ->whereReceiverId(Auth::id())
+                            ->with('sender')->get();
         return response()->json(['status' => 200 , 'data' => RequestResource::collection($approvedRequests) ]);                
     }
+    
+    public function getMutualRequest()
+    {
+        $mutualConnections = User::select('users.*','requests.*',DB::raw('count(requests.id) as mutual_connection'))
+            ->join('requests','users.id','requests.sender_id')
+            ->where('requests.status','approved')
+            ->groupBy('requests.sender_id')
+            ->get();
 
+        return response()->json(['status' => 200 , 'data' => $mutualConnections ]);                
+        
+    }
     
     
 }

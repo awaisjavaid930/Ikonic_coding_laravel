@@ -26,9 +26,22 @@ Route::post('/login', [UserController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function() {
 
-    Route::get('/suggested-request', [RequestController::class, 'suggestedRequest']); // suggested request
-    Route::get('/pending-request', [RequestController::class, 'pendingRequest']); // pending request
-    Route::post('/approved-request/{request}', [RequestController::class, 'approvedRequest']); // set approved 
-    Route::post('/withdraw-request/{request}', [RequestController::class, 'withdrawRequest']); // set withdraw request 
+    Route::get('/suggested-request', [RequestController::class, 'suggestedRequest']); 
+    // suggested request
+    Route::get('/received-request', [RequestController::class, 'receivedRequest']); // Received request
+    Route::post('/withdraw-request', [RequestController::class, 'withdrawRequest']); // set withdraw request 
+
+
+    
+    Route::get('/send-request', [RequestController::class, 'sendRequest']); 
+    // Send Request
+    Route::post('/create-request', [RequestController::class, 'createRequest']); 
+    // send request 
+    
+    
     Route::get('/approved-request', [RequestController::class, 'getApprovedRequest']); // get approved request
+    Route::post('/approved-request', [RequestController::class, 'approvedRequest']); // set approved
+
+
+    Route::get('/mutual-request', [RequestController::class, 'getMutualRequest']); // get approved request
 });
