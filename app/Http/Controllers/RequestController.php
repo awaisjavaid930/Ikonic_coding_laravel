@@ -18,8 +18,8 @@ class RequestController extends Controller
         $senderId = ConnectionRequst::pluck('sender_id')->toArray();
         $receiverId = ConnectionRequst::pluck('receiver_id')->toArray();
         $userIds = array_unique(array_merge($senderId, $receiverId));
-        $users = User::whereNotIn('id',$userIds)-->get();
-        return response()->json(['status' => 200 , 'data' => UserResource::collection($users)]);
+        $users = User::whereNotIn('id',$userIds)->paginate(3);
+        return response()->json(['status' => 200 , 'data' => $users]);
     }
     
     // get pending send request
@@ -75,7 +75,7 @@ class RequestController extends Controller
         $mutualConnections = User::select('users.*','requests.*',DB::raw('count(requests.id) as mutual_connection'))
             ->join('requests','users.id','requests.sender_id')
             ->where('requests.status','approved')
-            ->groupBy('requests.sender_id')
+            ->groupBy('requests.receiver_id')
             ->get();
 
         return response()->json(['status' => 200 , 'data' => $mutualConnections ]);                
